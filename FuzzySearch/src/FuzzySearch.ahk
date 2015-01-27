@@ -1,10 +1,23 @@
 /**
- * FuzzySearch is a lightweight function that uses basic 'fuzzy matching' logic to find
- * all possible matches to a query within any custom, string-based dictionary. Results
- * are weighted on a negative scale (the further from 0, the better the match); this was
- * done to provide automatic sorting, so that the results can easily be parsed in a
- * decending order. Yes. There are better ways to do this, but I'm far too lazy at this
- * point in time.
+ * Creates an array of match objects using a custom search technique based on a mix of
+ * fuzzy search and LCS algoritms. 
+ * 
+ * Before the search is initiated the query is split into individual characters, and then
+ * joined again by a regex wildcard -- though if query is blank or 'dict' is not an array
+ * the function will fail, returning 0. The search then begins by looping through the
+ * array of strings and attempting to validate a match by using a basic fuzzy search. If
+ * a match is found, the function will attempt to locate the best match for the query,
+ * rather than just submitting the first match (left-to-right); the 'best match' is
+ * determined by a weight system which holds matches at the begining of a string, new 
+ * words (seen as characters separated by a standard word boundary '\b' or an underscore)
+ * and capitals as identifiers of a better match. The weight system is fairly basic. In
+ * order, matches are weighted as follows:
+ * 1. The percent of characters in the string that the query covers, as a whole number.
+ *    i.e. Round((QUERY_LENGTH / STRING_LENGTH) * 100)
+ * 2. The first character in the query matches the first character in a string (+50).
+ * 3. A character in the query matches the first letter of a new word in a string (+25).
+ * 4. A character in the quert matches any uppercase letter in a given string (+10).
+ * 5. Any other match (+1).
  *
  * @function  FuzzySearch
  * @param     [in]      dict    An array of strings to query against.
@@ -14,92 +27,53 @@
  *                              occured within the string.
  */
 FuzzySearch(dict, query) {
-  /**
-   * @todo REFACTOR THE HELL OUT OF THIS THING! No bugs have been found yet, but I'm sure
-   *       that they're there somewhere... hiding.
-   */
-  StringLower query, query
+  if (! IsObject(dict) || query == "")
+    return 0
 
-  tokens  := StrSplit(query)
   matches := []
+
+  for each, token in StrSplit(query)
+  {
+    re_string .= (re_string ? ".*?" : "") "(" token ")"
+  }
 
   for each, string in dict
   {
-    tokenIndex := stringIndex := 1, matchPositions := [], weight := 0
+    if (RegExMatch(string, "Oi)" re_string, re_obj)) {
+      _match := {
+      (Join
+        "string": string,
+        "tokens": [],
+        "weight": Round((re_obj.Count() / StrLen(string)) * 100)  
+      )}
 
-    if (SubStr(string, 1, 1) = tokens[1])
-      weight -= 50
+      loop % re_obj.Count()
+      {
+        m_offset    := re_obj.Pos(A_Index)
+        m_restring  := (A_Index == 1 ? re_string : SubStr(m_restring, 7))
+        _token      := { "id": "", "position": 0, "weight": 0 }
+        
+        while (RegExMatch(string, "Oi)" m_restring, m_obj, m_offset)) {
+          _weight := m_obj.Pos(1) == 1 ? 50
+                   : RegExMatch(SubStr(string, m_obj.Pos(1) - 1, 2)
+                              , "i)(\b|(?<=_))" m_obj[1]) ? 25 
+                   : RegExMatch(SubStr(string, m_obj.Pos(1), 1), "\p{Lu}") ? 10 : 01
 
-    for idx, _substr in StrSplit(string, [" ", "_", "-"])
-    {
-      if (SubStr(_substr, 1, 1) = tokens[tokenIndex]) {
-        weight      -= 10
-        stringIndex := (InStr(string, _substr))
-
-        matchPositions.Insert({
-        (Join
-          "index": stringIndex,
-          "token": tokens[tokenIndex]
-        )})
-
-        if ( RegExMatch(_substr, "O)\w[a-z0-9]+([A-Z])", chr_match)
-          && chr_match[1] = tokens[tokenIndex + 1])
-        {
-          weight      -= 5
-          stringIndex += (InStr(_substr, chr_match[1], true) - 1)
-          tokenIndex  += 1
-
-          matchPositions.Insert({
-          (Join
-            "index": (stringIndex - 1),
-            "token": tokens[tokenIndex]
-          )})
+          if (_weight > _token.weight)
+            _token.id := m_obj[1]
+            , _token.weight   := _weight
+            , _token.position := m_obj.Pos(1)
+          
+          m_offset := m_obj.Pos(1) + 1
         }
 
-        tokenIndex++
-
-        if (tokenIndex > NumGet(&tokens+4*A_PtrSize)) {
-          matches.Insert(weight, {
-          (Join
-            "match"         : dict[each],
-            "matchedTokens" : matchPositions
-          )})
-
-          break
-        }
-      }
-    }
-
-    StringLower string, string
-
-    while ((stringIndex - 1) < StrLen(string)) {
-      tmp_strToken := StrSplit(string)[stringIndex]
-
-      if (tmp_strToken == tokens[tokenIndex]) {
-        weight--
-
-        matchPositions.Insert({
-        (Join
-          "index": stringIndex,
-          "token": tmp_strToken
-        )})
-
-        tokenIndex++
-
-        if (tokenIndex > NumGet(&tokens+4*A_PtrSize)) {
-          matches.Insert(weight, {
-          (Join
-            "match"         : dict[each],
-            "matchedTokens" : matchPositions
-          )})
-
-          break
-        }
+        _match.tokens.Insert(_token.position, _token.id)
+        _match.weight += _token.weight
       }
 
-      stringIndex++
+      matches.Insert(_match)
     }
   }
-
+  
   return matches
 }
