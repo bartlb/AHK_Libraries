@@ -17,6 +17,19 @@ ButtonSubmit:
   ; Next, check for the `actionType`; This value will be used to separate the scope of
   ; certain functionality and global variable values.
   if (actionType == "New SR") {
+    ; Now that the scope is defined correctly (i.e. the `ButtonSubmit` event handler was
+    ; called, and the `actionType` is set to "New SR"), we can check to see if the User
+    ; is attempting to submit an SR Number, or the form itself.
+    if (csi_flag) {
+      if (StrLen(SRNumber) != 8) {
+        GuiControl Focus, SRNumber
+        return
+      } else {
+        ; [LOG/METRICS FUNCTIONALITY HERE]
+        ExitApp
+      }
+    }
+
     DataCheck(product), EmailCheck(product)
     CSIOutput := "output_template.txt"
   } else {
@@ -34,6 +47,6 @@ ButtonSubmit:
   clipBackup := Clipboard
   Clipboard  := CreateCSIOutput(CSIOutput)  ; See <lib\internals::CreateCSIOutput>
   Pause On
-  
+
   return
 }
