@@ -4,7 +4,6 @@ DataCheck(Selection) {
     loop parse, requiredList, `,
     {
       if (%A_LoopField% == "") {
-        MsgBox % "DERP"
         MsgBox, 48, Mandatory Fields, Please ensure all fields are populated to continue.
         GuiControl, focus, %A_LoopField%
       }
