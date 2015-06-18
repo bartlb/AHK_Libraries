@@ -4,8 +4,11 @@ DataCheck(Selection) {
     loop parse, requiredList, `,
     {
       if (%A_LoopField% == "") {
-        MsgBox, 48, Mandatory Fields, Please ensure all fields are populated to continue.
-        GuiControl, focus, %A_LoopField%
+        data_flag :=true
       }
-    }  
+    }
+    if (data_flag) {
+        MsgBox, 48, Mandatory Fields, Please ensure all fields are populated to continue.
+        Exit
+      }
 }
